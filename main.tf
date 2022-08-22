@@ -1,3 +1,5 @@
+###### WARNING: THIS IS A PUBLIC REPO THAT HAS BEEN FORKED. DO NOT INCLUDE SENSITIVE INFORMATION IN ANY COMMITS. ######
+
 locals {
   create_cluster = var.create_cluster && var.putin_khuylo
 
