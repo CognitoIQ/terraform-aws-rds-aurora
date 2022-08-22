@@ -91,7 +91,7 @@ resource "aws_rds_cluster" "this" {
   }
 
   dynamic "scaling_configuration" {
-    for_each = length(keys(var.scaling_configuration)) == 0 || !local.is_serverless ? [] : [var.scaling_configuration]
+    for_each = length(keys(var.scaling_configuration)) == 0 || ! local.is_serverless ? [] : [var.scaling_configuration]
 
     content {
       auto_pause               = lookup(scaling_configuration.value, "auto_pause", null)
@@ -111,7 +111,7 @@ resource "aws_rds_cluster" "this" {
     }
   }
   dynamic "s3_import" {
-    for_each = var.s3_import != null && !local.is_serverless ? [var.s3_import] : []
+    for_each = var.s3_import != null && ! local.is_serverless ? [var.s3_import] : []
     content {
       source_engine         = "mysql"
       source_engine_version = s3_import.value.source_engine_version
@@ -140,13 +140,14 @@ resource "aws_rds_cluster" "this" {
       # See docs here https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/rds_global_cluster#new-global-cluster-from-existing-db-cluster
       global_cluster_identifier,
     ]
+    prevent_destroy = true
   }
 
   tags = merge(var.tags, var.cluster_tags)
 }
 
 resource "aws_rds_cluster_instance" "this" {
-  for_each = local.create_cluster && !local.is_serverless ? var.instances : {}
+  for_each = local.create_cluster && ! local.is_serverless ? var.instances : {}
 
   # Notes:
   # Do not set preferred_backup_window - its set at the cluster level and will error if provided here
@@ -179,13 +180,17 @@ resource "aws_rds_cluster_instance" "this" {
     delete = lookup(var.instance_timeouts, "delete", null)
   }
 
+  lifecycle {
+    prevent_destroy = true
+  }
+
   # TODO - not sure why this is failing and throwing type mis-match errors
   # tags = merge(var.tags, lookup(each.value, "tags", {}))
   tags = var.tags
 }
 
 resource "aws_rds_cluster_endpoint" "this" {
-  for_each = local.create_cluster && !local.is_serverless ? var.endpoints : tomap({})
+  for_each = local.create_cluster && ! local.is_serverless ? var.endpoints : tomap({})
 
   cluster_identifier          = try(aws_rds_cluster.this[0].id, "")
   cluster_endpoint_identifier = each.value.identifier
@@ -253,7 +258,7 @@ resource "aws_iam_role_policy_attachment" "rds_enhanced_monitoring" {
 ################################################################################
 
 resource "aws_appautoscaling_target" "this" {
-  count = local.create_cluster && var.autoscaling_enabled && !local.is_serverless ? 1 : 0
+  count = local.create_cluster && var.autoscaling_enabled && ! local.is_serverless ? 1 : 0
 
   max_capacity       = var.autoscaling_max_capacity
   min_capacity       = var.autoscaling_min_capacity
@@ -263,7 +268,7 @@ resource "aws_appautoscaling_target" "this" {
 }
 
 resource "aws_appautoscaling_policy" "this" {
-  count = local.create_cluster && var.autoscaling_enabled && !local.is_serverless ? 1 : 0
+  count = local.create_cluster && var.autoscaling_enabled && ! local.is_serverless ? 1 : 0
 
   name               = var.autoscaling_policy_name
   policy_type        = "TargetTrackingScaling"
